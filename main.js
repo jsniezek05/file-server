@@ -4,55 +4,35 @@ let bodyParser = require('body-parser');
 let app = express();
 let fs = require('fs');
 
+let port = process.env.PORT || 3000;
+let root = './';
 
-app.use(cors(), bodyParser());
+app.use(cors());
+app.use(bodyParser.json());
 
-app.get('/',function (req, res){
-  fs.readdir("../", function(err, files){
-    let transformed = files.map(fileName => {
-        return {
-          name: fileName,
-          type: fileName.indexOf('.') !== -1 ? 'file' : 'directory',
-          bc: ''
-        };
-  });
-    if (err) {
-      return console.error(err);
+function isFile(fileName) {
+  return fileName.indexOf('.') !== 0 && fileName.indexOf('.') !== -1;
+}
+
+function transform(list) {
+  return list.map((item) => {
+    return {
+      name: item,
+      type: isFile ? 'file' : 'directory'
     }
-    return res.json(transformed);
+  });
+}
+
+app.get('/directory', function(req, res, next) {
+  if(!req.query.root) { return next(); }
+  fs.readdir(root, function(err, result) {
+    if(err) { return res.json({ error: err.message }) }
+    res.json(result);
   });
 });
 
-app.get('/read/:bc', function (req, res) {
-  object = JSON.parse(req.params.bc);
-  name = object.name;
-  bc = object.bc;
-  fs.readFile('../' + bc + name, function (err, data){
-    if (err) {
-      return console.error(err);
-    }
-    return res.end(data)
-  });
+app.all('*', function(req, res) {
+  res.status(404);
 });
 
-app.get('/directory/:bc', function(req, res){
-  object = JSON.parse(req.params.bc);
-  name = object.name;
-  bc = object.bc;
-  fs.readdir('../' + bc + name , function(err, files){
-    let transformed = files.map(fileName => {
-        return {
-          name: fileName,
-          type: fileName.indexOf('.') !== -1 ? 'file' : 'directory',
-          bc: bc + name,
-        };
-  });
-    if (err) {
-      return console.error(err);
-    }
-    return res.json(transformed);
-  });
-});
-
-
-app.listen(3001, console.log('listening'));
+app.listen(port, () => console.log('listening on port ' + port));
